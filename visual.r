@@ -349,8 +349,8 @@ rmse
 ##########################################
 ###############################################feature selection
 ######first we provide data independently
-gen1 = read.delim("data/bdtnp.txt", header = TRUE, sep = "\t", dec = ".")
-geo = read.delim("data/geometry.txt", header = TRUE, sep = " ", dec = ".")
+gen1 = read.delim("../data/bdtnp.txt", header = TRUE, sep = "\t", dec = ".")
+geo = read.delim("../data/geometry.txt", header = TRUE, sep = " ", dec = ".")
 dim(geo)
 typeof(gen1)
 head(gen1)
@@ -417,6 +417,48 @@ step.model <- train(xcoord ~., data = data_x,
 )
 step.model$results
 step.model$bestTune
+
+####Adaptive-Network-Based Fuzzy Inference System
+library("frbs")
+step.model <- train(xcoord ~., data = data_x,
+                    method = "ANFIS", 
+                    max.iter = 10 ,
+                    num.lable = 
+                    tuneGrid = data.frame(nvmax = 1:85),
+                    trControl = train.control
+)
+step.model$results
+step.model$bestTune
+###gradian boosting tree
+library("e1071")
+library("plyr")
+library("ipred")
+library(xgboost)
+param <-  data.frame(nrounds=c(1000), max_depth = c(8),eta =c(0.3),gamma=c(0),
+                     colsample_bytree=c(0.8),min_child_weight=c(1),subsample=c(1))
+step.model <- train(xcoord ~., data = data_x,
+                    method = "xgbTree", 
+                    tuneGrid = param,
+                    trControl = train.control
+                    
+)
+step.model$results
+step.model$bestTune
+#### method = 'xgbDART'
+param <-  data.frame(nrounds=c(1000), max_depth = c(4),eta =c(0.3),gamma=c(0),
+                     colsample_bytree=c(0.8),min_child_weight=c(1),subsample=c(1),rate_drop = c(0.2),
+                     skip_drop = c(0.2))
+step.model <- train(xcoord ~., data = out4,
+                    method = "xgbDART", 
+                    tuneGrid = param,
+                    trControl = train.control
+                    
+)
+step.model$results
+step.model$bestTune
+###
+
+###
 ##my clustring
 # Set seed for reproducibility
 set.seed(123)
