@@ -7,7 +7,7 @@ options(repos='http://cran.rstudio.com/')
 setwd("D:/computer lessons/arshad/thesis/proposal/code/single-cell-resolution")
 
 # distributed analysis belong x,y,z
-geo = read.delim("data/geometry.txt", header = TRUE, sep = " ", dec = ".")
+geo = read.delim("../data/geometry.txt", header = TRUE, sep = " ", dec = ".")
 
 #x
 x_ax = geo[1][]
@@ -61,6 +61,30 @@ rgl_init <- function(new.device = FALSE, bg = "white", width = 640) {
 
 rgl.open() # Open a new RGL device
 rgl.points(x, y, z, color ="lightgray") # Scatter plot
+##clusters
+
+rgl.points(xcl1, ycl1, zcl1, color ="lightgray")
+rgl.points(xcl2, ycl2, zcl2, color ="yellow")
+rgl.points(xcl3, ycl3, zcl3, color ="green")
+rgl.points(xcl4, ycl4, zcl4, color ="red")
+#clsuters
+xcl1= out1$xcoord
+ycl1= out1$ycoord
+zcl1= out1$zcoord
+
+xcl2= out2$xcoord
+ycl2= out2$ycoord
+zcl2= out2$zcoord
+
+xcl3= out3$xcoord
+ycl3= out3$ycoord
+zcl3= out3$zcoord
+
+xcl4= out4$xcoord
+ycl4= out4$ycoord
+zcl4= out4$zcoord
+
+##clusters
 rgl.snapshot("result/visual/3d1.png")
 library(magick)
 movie3d(spin3d(axis = c(1, 1, 1)), duration = 3,
@@ -86,6 +110,7 @@ rgl_init()
 rgl.spheres(x, y, z, r = 0.2, color = "yellow")  # Scatter plot
 rgl.bbox(color = "#333377") # Add bounding box decoration
 rgl.snapshot("result/visual/3d6.png")
+
 library(magick)
 movie3d(spin3d(axis = c(0, 0, 1)), duration = 3,
         dir = getwd())
@@ -456,6 +481,10 @@ step.model <- train(xcoord ~., data = out4,
 )
 step.model$results
 step.model$bestTune
+dim(out1)
+dim(out2)
+dim(out3)
+dim(out4)
 ###
 
 ###
@@ -482,6 +511,8 @@ summary(step.model$finalModel)
 ###########################################clustring for improve feature selection (bacward forward)
 cl_data = feature_selectd
 xcoord = cl_data$xcoord
+ycoord = cl_data$ycoord
+zcoord = cl_data$zcoord
 cl_data$xcoord = NULL
 cl_data$ycoord =NULL
 cl_data$zcoord = NULL
@@ -508,6 +539,10 @@ aggregate(mydata,by=list(fit$cluster),FUN=mean)
 # append cluster assignment
 mydata <- data.frame(mydata, fit$cluster)
 mydata$xcoord = xcoord
+##only for visulizing this bellow code shoude excute
+mydata$ycoord = ycoord
+mydata$zcoord = zcoord
+#####
 out = split(mydata, f= mydata$fit.cluster)
 out1 = out[[1]]
 out2 = out[[2]]
