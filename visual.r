@@ -67,6 +67,8 @@ rgl.points(xcl1, ycl1, zcl1, color ="lightgray")
 rgl.points(xcl2, ycl2, zcl2, color ="yellow")
 rgl.points(xcl3, ycl3, zcl3, color ="green")
 rgl.points(xcl4, ycl4, zcl4, color ="red")
+rgl.points(xcl5, ycl5, zcl5, color ="blue")
+
 #clsuters
 xcl1= out1$xcoord
 ycl1= out1$ycoord
@@ -83,6 +85,10 @@ zcl3= out3$zcoord
 xcl4= out4$xcoord
 ycl4= out4$ycoord
 zcl4= out4$zcoord
+
+xcl5= out5$xcoord
+ycl5= out5$ycoord
+zcl5= out5$zcoord
 
 ##clusters
 rgl.snapshot("result/visual/3d1.png")
@@ -435,14 +441,14 @@ set.seed(123)
 # Set up repeated k-fold cross-validation
 train.control <- trainControl(method = "cv", number = 10)
 # Train the model
-step.model <- train(xcoord ~., data = data_x,
+step.model <- train(xcoord ~., data = out5,
                     method = "leapSeq", 
                     tuneGrid = data.frame(nvmax = 1:85),
                     trControl = train.control
 )
 step.model$results
 step.model$bestTune
-
+dim(mydata)
 ####Adaptive-Network-Based Fuzzy Inference System
 library("frbs")
 step.model <- train(xcoord ~., data = data_x,
@@ -459,7 +465,7 @@ library("e1071")
 library("plyr")
 library("ipred")
 library(xgboost)
-param <-  data.frame(nrounds=c(1000), max_depth = c(8),eta =c(0.3),gamma=c(0),
+param <-  data.frame(nrounds=c(1000), max_depth = c(2),eta =c(0.3),gamma=c(0),
                      colsample_bytree=c(0.8),min_child_weight=c(1),subsample=c(1))
 step.model <- train(xcoord ~., data = data_x,
                     method = "xgbTree", 
@@ -470,10 +476,10 @@ step.model <- train(xcoord ~., data = data_x,
 step.model$results
 step.model$bestTune
 #### method = 'xgbDART'
-param <-  data.frame(nrounds=c(1000), max_depth = c(4),eta =c(0.3),gamma=c(0),
+param <-  data.frame(nrounds=c(1000), max_depth = c(8),eta =c(0.3),gamma=c(0),
                      colsample_bytree=c(0.8),min_child_weight=c(1),subsample=c(1),rate_drop = c(0.2),
                      skip_drop = c(0.2))
-step.model <- train(xcoord ~., data = out4,
+step.model <- train(xcoord ~., data = out5,
                     method = "xgbDART", 
                     tuneGrid = param,
                     trControl = train.control
@@ -551,6 +557,113 @@ out4 = out[[4]]
 dim(out4)
 max(out3$xcoord)
 min(out3$xcoord)
+#####
+############tsne clustring
+###https://www.r-bloggers.com/playing-with-dimensions-from-clustering-pca-t-sne-to-carl-sagan/
+library(Rtsne)
+library(caret)
+data_tsne = mydata
+## Rtsne function may take some minutes to complete...
+set.seed(9)  
+tsne_model_1 = Rtsne(as.matrix(data_tsne), check_duplicates=FALSE, pca=TRUE, perplexity=25, theta=0.5, dims=2)
+
+## getting the two dimension matrix
+d_tsne_1 = as.data.frame(tsne_model_1$Y) 
+## plotting the results without clustering
+ggplot(d_tsne_1, aes(x=V1, y=V2)) +  
+  geom_point(size=0.25) +
+  guides(colour=guide_legend(override.aes=list(size=6))) +
+  xlab("") + ylab("") +
+  ggtitle("t-SNE") +
+  theme_light(base_size=20) +
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank()) +
+  scale_colour_brewer(palette = "Set2")
+
+
+## keeping original data
+d_tsne_1_original=d_tsne_1
+
+## Creating k-means clustering model, and assigning the result to the data used to create the tsne
+#plot silhouette
+require(cluster)
+require(factoextra)
+fviz_nbclust(d_tsne_1, kmeans, method = "silhouette")
+fviz_nbclust(d_tsne_1, hcut, method = "silhouette")
+
+##
+fit_cluster_kmeans=kmeans(scale(d_tsne_1), 5)  
+d_tsne_1_original$cl_kmeans = factor(fit_cluster_kmeans$cluster)
+
+## Creating hierarchical cluster model, and assigning the result to the data used to create the tsne
+fit_cluster_hierarchical=hclust(dist(scale(d_tsne_1)))
+
+## setting 5 clusters as output
+d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=5))  
+
+plot_cluster=function(data, var_cluster, palette)  
+{
+  ggplot(data, aes_string(x="V1", y="V2", color=var_cluster)) +
+    geom_point(size=0.25) +
+    guides(colour=guide_legend(override.aes=list(size=6))) +
+    xlab("") + ylab("") +
+    ggtitle("") +
+    theme_light(base_size=20) +
+    theme(axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          legend.direction = "horizontal", 
+          legend.position = "bottom",
+          legend.box = "horizontal") + 
+    scale_colour_brewer(palette = palette) 
+}
+
+
+plot_k=plot_cluster(d_tsne_1_original, "cl_kmeans", "Accent")  
+plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set1")
+
+png(filename="../clsuter_shape/tsne_kmeans_5_cluster.png")
+plot_cluster(d_tsne_1_original, "cl_kmeans", "Accent") 
+dev.off()
+png(filename="../clsuter_shape/tsne_hirechixal_5_cluster.png")
+plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set1")
+dev.off()
+
+plot_k=plot_cluster(d_tsne_1_original, "cl_kmeans", "Accent")  
+plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set1")
+
+## and finally: putting the plots side by side with gridExtra lib...
+library(gridExtra)  
+png(filename="../clsuter_shape/tsne_kmeans vs hierachiacal_5_cluster.png")
+grid.arrange(plot_k, plot_h,  ncol=2)  
+dev.off()
+
+####split clusters
+mydata2 = d_tsne_1_original
+dim(mydata2)
+head(mydata2)
+mydata = data_tsne
+head(mydata)
+dim(mydata)
+mydata$cl_kmeans = mydata2$cl_kmeans
+
+mydata$xcoord = xcoord
+##only for visulizing this bellow code shoude excute
+mydata$ycoord = ycoord
+mydata$zcoord = zcoord
+#####
+out = split(mydata, f= mydata$cl_kmeans)
+out1 = out[[1]]
+out1$cl_kmeans = NULL
+out2 = out[[2]]
+out2$cl_kmeans = NULL
+out3 = out[[3]]
+out3$cl_kmeans = NULL
+out4 = out[[4]]
+out4$cl_kmeans = NULL
+out5 = out[[5]]
+out5$cl_kmeans = NULL
+dim(out5)
+###########
 ###################### kmedoeids clustring
 library(cluster)
 library(factoextra)
